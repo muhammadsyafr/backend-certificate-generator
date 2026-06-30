@@ -5,7 +5,7 @@ WORKDIR /app
 RUN apk add --no-cache python3 make g++
 
 COPY package.json ./
-RUN npm_config_build_from_source=true npm install
+RUN npm install
 
 COPY tsconfig.json ./
 COPY src ./src
@@ -21,7 +21,7 @@ COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 
-RUN mkdir -p /app/data && chown -R appuser:appgroup /app
+RUN mkdir -p /app/data && chown -R appuser:appuser /app
 
 USER appuser
 
