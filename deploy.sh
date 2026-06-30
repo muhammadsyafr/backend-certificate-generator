@@ -44,7 +44,7 @@ fi
 
 # 2. Build
 echo "[2/4] Building podman image..."
-docker build -t "$IMAGE_NAME" "$SCRIPT_DIR"
+docker build --no-cache --network=host -t "$IMAGE_NAME" "$SCRIPT_DIR"
 
 # 3. Stop old
 echo "[3/4] Stopping old container..."
