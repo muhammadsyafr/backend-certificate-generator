@@ -1,4 +1,4 @@
-FROM oven/bun:1-alpine AS build
+FROM docker.io/oven/bun:1-alpine AS build
 
 WORKDIR /app
 
@@ -10,7 +10,7 @@ COPY tsconfig.json ./
 COPY src ./src
 RUN bun build ./src/index.ts --target bun --outdir ./dist
 
-FROM oven/bun:1-alpine
+FROM docker.io/oven/bun:1-alpine
 
 WORKDIR /app
 
