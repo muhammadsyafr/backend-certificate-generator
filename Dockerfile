@@ -1,35 +1,41 @@
+FROM node:20-alpine AS build
+
+WORKDIR /app
+
+RUN apk add --no-cache python3 make g++
+
+COPY package*.json ./
+RUN npm ci
+
+COPY tsconfig.json ./
+COPY src ./src
+RUN npm run build
+
+RUN npm prune --omit=dev
+
 FROM node:20-alpine
 
 WORKDIR /app
 
-# Install build dependencies for better-sqlite3
-RUN apk add --no-cache python3 make g++
+RUN apk add --no-cache tini && \
+    addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Copy package files
-COPY package*.json ./
+COPY --from=build /app/dist ./dist
+COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/package.json ./
 
-# Install all dependencies (including devDependencies for build)
-RUN npm ci
+RUN mkdir -p /app/data && chown -R appuser:appgroup /app
 
-# Copy source code
-COPY src ./src
-COPY tsconfig.json ./
+USER appuser
 
-# Build TypeScript
-RUN npm run build
-
-# Remove devDependencies for final image
-RUN npm prune --omit=dev
-
-# Create data directory
-RUN mkdir -p /app/data
-
-# Expose port
 EXPOSE 4000
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD node -e "require('http').get('http://localhost:4000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
 
-# Start application
-CMD ["npm", "start"]
+ENV NODE_ENV=production \
+    PORT=4000 \
+    DATA_DIR=/app/data
+
+ENTRYPOINT ["/sbin/tini", "--"]
+CMD ["node", "dist/index.js"]

@@ -5,6 +5,19 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   password: text('password').notNull(), // bcrypt hash
   name: text('name').notNull(),
+  failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
+  lockedUntil: integer('locked_until'), // unix timestamp, null = not locked
+  createdAt: integer('created_at').notNull(),
+});
+
+export const auditLogs = sqliteTable('audit_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  userId: integer('user_id').references(() => users.id, { onDelete: 'set null' }),
+  action: text('action').notNull(), // 'login_failed' | 'login_success' | 'register' | 'logout' | 'account_locked' | 'account_unlocked'
+  email: text('email').notNull(),
+  ip: text('ip'),
+  userAgent: text('user_agent'),
+  details: text('details'), // JSON
   createdAt: integer('created_at').notNull(),
 });
 

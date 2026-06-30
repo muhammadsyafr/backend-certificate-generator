@@ -1,7 +1,13 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key-change-in-production';
+const DEFAULT_SECRET = 'your-secret-key-change-in-production-use-strong-random-string';
+const JWT_SECRET = process.env.JWT_SECRET || DEFAULT_SECRET;
+
+// Warn on default secret in production
+if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEFAULT_SECRET) {
+  console.error('CRITICAL: Using default JWT secret in production! Generate a strong secret with: openssl rand -base64 32');
+}
 
 export interface AuthRequest extends Request {
   userId?: number;
@@ -13,7 +19,7 @@ export interface AuthRequest extends Request {
 }
 
 export const authenticateToken = (req: AuthRequest, res: Response, next: NextFunction) => {
-  const token = req.cookies.auth_token; // Read from cookie
+  const token = req.cookies.auth_token || extractBearerToken(req);
 
   if (!token) {
     return res.status(401).json({ error: 'Access token required' });
@@ -32,6 +38,12 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     return res.status(403).json({ error: 'Invalid or expired token' });
   }
 };
+
+function extractBearerToken(req: Request): string | undefined {
+  const authHeader = req.headers.authorization;
+  if (!authHeader || !authHeader.startsWith('Bearer ')) return undefined;
+  return authHeader.slice(7);
+}
 
 export const generateToken = (userId: number, email: string, name: string): string => {
   return jwt.sign(

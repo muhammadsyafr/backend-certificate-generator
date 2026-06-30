@@ -14,10 +14,21 @@ const PORT = process.env.PORT || 4000;
 const CORS_ORIGIN = process.env.CORS_ORIGIN || 'http://localhost:3000';
 const NODE_ENV = process.env.NODE_ENV || 'development';
 
+// HTTPS redirect in production
+if (NODE_ENV === 'production') {
+  app.use((req, res, next) => {
+    if (!req.secure && req.headers['x-forwarded-proto'] !== 'https') {
+      return res.redirect(301, `https://${req.headers.host}${req.url}`);
+    }
+    next();
+  });
+}
+
 // Security middleware
 app.use(helmet({
   contentSecurityPolicy: false, // Disable for API server
-  crossOriginResourcePolicy: false
+  crossOriginResourcePolicy: false,
+  hsts: NODE_ENV === 'production' ? { maxAge: 31536000, includeSubDomains: true } : false,
 }));
 
 // CORS with credentials
