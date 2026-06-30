@@ -1,16 +1,19 @@
-FROM docker.io/oven/bun:1-alpine AS build
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
 RUN apk add --no-cache python3 make g++
-COPY package.json bun.lock* ./
-RUN bun install --frozen-lockfile
+
+COPY package.json ./
+RUN npm install
+
+RUN npm install -g bun
 
 COPY tsconfig.json ./
 COPY src ./src
 RUN bun build ./src/index.ts --target bun --outdir ./dist
 
-FROM docker.io/oven/bun:1-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
