@@ -7,20 +7,18 @@ RUN apk add --no-cache python3 make g++
 COPY package.json ./
 RUN npm_config_build_from_source=true npm install
 
-RUN npm install -g bun
-
 COPY tsconfig.json ./
 COPY src ./src
-RUN bun build ./src/index.ts --target bun --outdir ./dist
+RUN npx tsc
 
-FROM oven/bun:1-alpine
+FROM node:20-alpine
 
 WORKDIR /app
 
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
 COPY --from=build /app/package.json ./
 
 RUN mkdir -p /app/data && chown -R appuser:appgroup /app
@@ -36,4 +34,4 @@ ENV NODE_ENV=production \
     PORT=4000 \
     DATA_DIR=/app/data
 
-CMD ["bun", "run", "dist/index.js"]
+CMD ["node", "dist/index.js"]
