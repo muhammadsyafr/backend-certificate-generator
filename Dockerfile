@@ -1,24 +1,20 @@
-FROM node:20-alpine AS build
+FROM oven/bun:1-alpine AS build
 
 WORKDIR /app
 
 RUN apk add --no-cache python3 make g++
-
-COPY package*.json ./
-RUN npm ci
+COPY package.json bun.lock* ./
+RUN bun install --frozen-lockfile --production
 
 COPY tsconfig.json ./
 COPY src ./src
-RUN npm run build
+RUN bun build ./src/index.ts --target bun --outdir ./dist
 
-RUN npm prune --omit=dev
-
-FROM node:20-alpine
+FROM oven/bun:1-alpine
 
 WORKDIR /app
 
-RUN apk add --no-cache tini && \
-    addgroup -S appgroup && adduser -S appuser -G appgroup
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
 COPY --from=build /app/dist ./dist
 COPY --from=build /app/node_modules ./node_modules
@@ -31,11 +27,10 @@ USER appuser
 EXPOSE 4000
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD node -e "require('http').get('http://localhost:4000/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"
+  CMD wget --quiet --tries=1 --spider http://localhost:4000/health || exit 1
 
 ENV NODE_ENV=production \
     PORT=4000 \
     DATA_DIR=/app/data
 
-ENTRYPOINT ["/sbin/tini", "--"]
-CMD ["node", "dist/index.js"]
+CMD ["bun", "run", "dist/index.js"]

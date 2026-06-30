@@ -2,21 +2,16 @@
   "name": "backend-certificate-generator",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "dist/index.js",
   "scripts": {
-    "dev": "ts-node src/index.ts",
-    "build": "tsc",
-    "start": "node dist/index.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "bun run --watch src/index.ts",
+    "build": "bun build ./src/index.ts --outdir ./dist",
+    "start": "bun run dist/index.js"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
   "dependencies": {
-    "@types/express": "^5.0.6",
-    "@types/multer": "^2.1.0",
-    "@types/node": "^26.0.1",
     "bcryptjs": "^3.0.3",
     "better-sqlite3": "^12.11.1",
     "cookie-parser": "^1.4.7",
@@ -28,15 +23,17 @@
     "helmet": "^8.2.0",
     "jsonwebtoken": "^9.0.3",
     "multer": "^2.2.0",
-    "sharp": "^0.35.2",
-    "ts-node": "^10.9.2",
-    "typescript": "^6.0.3"
+    "sharp": "^0.35.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
     "@types/cookie-parser": "^1.4.10",
     "@types/cors": "^2.8.19",
-    "@types/jsonwebtoken": "^9.0.10"
+    "@types/express": "^5.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.1.0",
+    "@types/node": "^26.0.1",
+    "typescript": "^6.0.3"
   }
 }
