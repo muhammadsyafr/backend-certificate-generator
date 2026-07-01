@@ -53,3 +53,6 @@ temp/
 
 # Uploads (if you want to ignore user uploads)
 uploads/
+
+# Certifies
+certs

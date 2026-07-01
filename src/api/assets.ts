@@ -25,8 +25,12 @@ router.get('/', async (req: AuthRequest, res) => {
       .all();
     // Parse metadata JSON for each asset
     const parsedAssets = allAssets.map(asset => ({
-      ...asset,
+      id: asset.uuid,
+      filename: asset.filename,
+      filepath: asset.filepath,
+      type: asset.type,
       metadata: asset.metadata ? JSON.parse(asset.metadata) : null,
+      uploadedAt: asset.uploadedAt,
     }));
     res.json(parsedAssets);
   } catch (error) {
@@ -84,6 +88,7 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
     const result = await db
       .insert(assets)
       .values({
+        uuid: crypto.randomUUID(),
         userId: req.userId!,
         filename,
         filepath,
@@ -93,7 +98,15 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
       })
       .returning();
 
-    res.status(201).json(result[0]);
+    const asset = result[0];
+    res.status(201).json({
+      id: asset.uuid,
+      filename: asset.filename,
+      filepath: asset.filepath,
+      type: asset.type,
+      metadata: asset.metadata ? JSON.parse(asset.metadata) : null,
+      uploadedAt: asset.uploadedAt,
+    });
   } catch (error) {
     console.error('Upload error:', error);
     res.status(500).json({ error: 'Failed to upload asset' });
@@ -103,16 +116,16 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
 // DELETE - Delete asset
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(String(req.params.id) || '0');
+    const uuid = String(req.params.id);
 
-    if (!id) {
+    if (!uuid) {
       return res.status(400).json({ error: 'Invalid asset ID' });
     }
 
     const asset = await db
       .select()
       .from(assets)
-      .where(and(eq(assets.id, id), eq(assets.userId, req.userId!)))
+      .where(and(eq(assets.uuid, uuid), eq(assets.userId, req.userId!)))
       .get();
 
     if (!asset) {
@@ -129,7 +142,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     }
 
     // Delete from database
-    await db.delete(assets).where(and(eq(assets.id, id), eq(assets.userId, req.userId!)));
+    await db.delete(assets).where(and(eq(assets.uuid, uuid), eq(assets.userId, req.userId!)));
 
     res.json({ success: true });
   } catch (error) {

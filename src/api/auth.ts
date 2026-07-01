@@ -16,9 +16,12 @@ const LOCKOUT_DURATION_MS = 15 * 60 * 1000; // 15 minutes
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts
-  message: 'Too many attempts, please try again later',
+  message: { error: 'Too many attempts, please try again later' },
   standardHeaders: true,
   legacyHeaders: false,
+  handler: (req, res) => {
+    res.status(429).json({ error: 'Too many attempts, please try again later' });
+  },
 });
 
 const NODE_ENV = process.env.NODE_ENV || 'development';
@@ -126,6 +129,7 @@ router.post('/register', authLimiter, async (req, res) => {
     const result = await db
       .insert(users)
       .values({
+        uuid: crypto.randomUUID(),
         email: emailTrimmed,
         password: hashedPassword,
         name: name.trim(),
@@ -141,13 +145,13 @@ router.post('/register', authLimiter, async (req, res) => {
     await logAudit({ userId: user.id, action: 'register', email: user.email, ip, userAgent });
 
     // Generate token
-    const token = generateToken(user.id, user.email, user.name);
+    const token = generateToken(user.id, user.uuid, user.email, user.name);
     setAuthCookie(res, token);
 
     res.status(201).json({
       token,
       user: {
-        id: user.id,
+        id: user.uuid,
         email: user.email,
         name: user.name,
         createdAt: user.createdAt,
@@ -209,13 +213,13 @@ router.post('/login', authLimiter, async (req, res) => {
     await logAudit({ userId: user.id, action: 'login_success', email: user.email, ip, userAgent });
 
     // Generate token
-    const token = generateToken(user.id, user.email, user.name);
+    const token = generateToken(user.id, user.uuid, user.email, user.name);
     setAuthCookie(res, token);
 
     res.json({
       token,
       user: {
-        id: user.id,
+        id: user.uuid,
         email: user.email,
         name: user.name,
         createdAt: user.createdAt,
@@ -257,7 +261,7 @@ router.get('/me', authenticateToken, async (req: any, res) => {
     }
 
     res.json({
-      id: user.id,
+      id: user.uuid,
       email: user.email,
       name: user.name,
       createdAt: user.createdAt,

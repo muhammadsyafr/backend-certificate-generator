@@ -17,7 +17,16 @@ router.get('/', async (req: AuthRequest, res) => {
       .from(templates)
       .where(eq(templates.userId, req.userId!))
       .all();
-    res.json(allTemplates);
+    
+    const templatesWithUuid = allTemplates.map(t => ({
+      id: t.uuid,
+      name: t.name,
+      layout: JSON.parse(t.layout),
+      createdAt: t.createdAt,
+      updatedAt: t.updatedAt,
+    }));
+    
+    res.json(templatesWithUuid);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch templates' });
   }
@@ -35,6 +44,7 @@ router.post('/', async (req: AuthRequest, res) => {
     const result = await db
       .insert(templates)
       .values({
+        uuid: crypto.randomUUID(),
         userId: req.userId!,
         name,
         layout: JSON.stringify(layout),
@@ -43,7 +53,14 @@ router.post('/', async (req: AuthRequest, res) => {
       })
       .returning();
 
-    res.status(201).json(result[0]);
+    const template = result[0];
+    res.status(201).json({
+      id: template.uuid,
+      name: template.name,
+      layout: JSON.parse(template.layout),
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to create template' });
   }
@@ -52,23 +69,29 @@ router.post('/', async (req: AuthRequest, res) => {
 // GET - Get single template
 router.get('/:id', async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(String(req.params.id) || '0');
+    const uuid = String(req.params.id);
 
-    if (!id) {
+    if (!uuid) {
       return res.status(400).json({ error: 'Invalid template ID' });
     }
 
     const template = await db
       .select()
       .from(templates)
-      .where(and(eq(templates.id, id), eq(templates.userId, req.userId!)))
+      .where(and(eq(templates.uuid, uuid), eq(templates.userId, req.userId!)))
       .get();
 
     if (!template) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    res.json(template);
+    res.json({
+      id: template.uuid,
+      name: template.name,
+      layout: JSON.parse(template.layout),
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch template' });
   }
@@ -77,10 +100,10 @@ router.get('/:id', async (req: AuthRequest, res) => {
 // PUT - Update template
 router.put('/:id', async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(String(req.params.id) || '0');
+    const uuid = String(req.params.id);
     const { name, layout } = req.body;
 
-    if (!id) {
+    if (!uuid) {
       return res.status(400).json({ error: 'Invalid template ID' });
     }
 
@@ -94,14 +117,21 @@ router.put('/:id', async (req: AuthRequest, res) => {
     const result = await db
       .update(templates)
       .set(updateData)
-      .where(and(eq(templates.id, id), eq(templates.userId, req.userId!)))
+      .where(and(eq(templates.uuid, uuid), eq(templates.userId, req.userId!)))
       .returning();
 
     if (!result.length) {
       return res.status(404).json({ error: 'Template not found' });
     }
 
-    res.json(result[0]);
+    const template = result[0];
+    res.json({
+      id: template.uuid,
+      name: template.name,
+      layout: JSON.parse(template.layout),
+      createdAt: template.createdAt,
+      updatedAt: template.updatedAt,
+    });
   } catch (error) {
     res.status(500).json({ error: 'Failed to update template' });
   }
@@ -110,15 +140,15 @@ router.put('/:id', async (req: AuthRequest, res) => {
 // DELETE - Delete template
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(String(req.params.id) || '0');
+    const uuid = String(req.params.id);
 
-    if (!id) {
+    if (!uuid) {
       return res.status(400).json({ error: 'Invalid template ID' });
     }
 
     const result = await db
       .delete(templates)
-      .where(and(eq(templates.id, id), eq(templates.userId, req.userId!)))
+      .where(and(eq(templates.uuid, uuid), eq(templates.userId, req.userId!)))
       .returning();
 
     if (!result.length) {

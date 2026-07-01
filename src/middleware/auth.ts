@@ -11,8 +11,10 @@ if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEFAULT_SECRET) {
 
 export interface AuthRequest extends Request {
   userId?: number;
+  userUuid?: string;
   user?: {
     id: number;
+    uuid: string;
     email: string;
     name: string;
   };
@@ -28,8 +30,10 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     req.userId = decoded.userId;
+    req.userUuid = decoded.userUuid;
     req.user = {
       id: decoded.userId,
+      uuid: decoded.userUuid,
       email: decoded.email,
       name: decoded.name,
     };
@@ -45,9 +49,9 @@ function extractBearerToken(req: Request): string | undefined {
   return authHeader.slice(7);
 }
 
-export const generateToken = (userId: number, email: string, name: string): string => {
+export const generateToken = (userId: number, userUuid: string, email: string, name: string): string => {
   return jwt.sign(
-    { userId, email, name },
+    { userId, userUuid, email, name },
     JWT_SECRET,
     { expiresIn: '7d' }
   );

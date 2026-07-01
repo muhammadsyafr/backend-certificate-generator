@@ -2,6 +2,7 @@ import { sqliteTable, integer, text } from 'drizzle-orm/sqlite-core';
 
 export const users = sqliteTable('users', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uuid: text('uuid').notNull().unique(),
   email: text('email').notNull().unique(),
   password: text('password').notNull(), // bcrypt hash
   name: text('name').notNull(),
@@ -23,6 +24,7 @@ export const auditLogs = sqliteTable('audit_logs', {
 
 export const templates = sqliteTable('templates', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uuid: text('uuid').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   layout: text('layout').notNull(), // JSON string
@@ -32,6 +34,7 @@ export const templates = sqliteTable('templates', {
 
 export const assets = sqliteTable('assets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uuid: text('uuid').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   filename: text('filename').notNull(),
   filepath: text('filepath').notNull(), // relative from public/
@@ -42,6 +45,7 @@ export const assets = sqliteTable('assets', {
 
 export const fonts = sqliteTable('fonts', {
   id: integer('id').primaryKey({ autoIncrement: true }),
+  uuid: text('uuid').notNull().unique(),
   userId: integer('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   name: text('name').notNull(),
   filename: text('filename').notNull(),

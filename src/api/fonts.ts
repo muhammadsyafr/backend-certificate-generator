@@ -45,7 +45,19 @@ router.get('/', async (req: AuthRequest, res) => {
       .from(fonts)
       .where(eq(fonts.userId, req.userId!))
       .all();
-    res.json(allFonts);
+    
+    const fontsWithUuid = allFonts.map(f => ({
+      id: f.uuid,
+      name: f.name,
+      filename: f.filename,
+      filepath: f.filepath,
+      fontFamily: f.fontFamily,
+      fontWeight: f.fontWeight,
+      fontStyle: f.fontStyle,
+      uploadedAt: f.uploadedAt,
+    }));
+    
+    res.json(fontsWithUuid);
   } catch (error) {
     res.status(500).json({ error: 'Failed to fetch fonts' });
   }
@@ -102,6 +114,7 @@ router.post('/', upload.array('files'), async (req: AuthRequest, res) => {
       const result = await db
         .insert(fonts)
         .values({
+          uuid: crypto.randomUUID(),
           userId: req.userId!,
           name: file.originalname,
           filename: file.originalname,
@@ -113,7 +126,17 @@ router.post('/', upload.array('files'), async (req: AuthRequest, res) => {
         })
         .returning();
 
-      results.push(result[0]);
+      const font = result[0];
+      results.push({
+        id: font.uuid,
+        name: font.name,
+        filename: font.filename,
+        filepath: font.filepath,
+        fontFamily: font.fontFamily,
+        fontWeight: font.fontWeight,
+        fontStyle: font.fontStyle,
+        uploadedAt: font.uploadedAt,
+      });
     }
 
     if (results.length === 0) {
@@ -132,16 +155,16 @@ router.post('/', upload.array('files'), async (req: AuthRequest, res) => {
 // DELETE - Delete font
 router.delete('/:id', async (req: AuthRequest, res) => {
   try {
-    const id = parseInt(String(req.params.id) || '0');
+    const uuid = String(req.params.id);
 
-    if (!id) {
+    if (!uuid) {
       return res.status(400).json({ error: 'Invalid font ID' });
     }
 
     const font = await db
       .select()
       .from(fonts)
-      .where(and(eq(fonts.id, id), eq(fonts.userId, req.userId!)))
+      .where(and(eq(fonts.uuid, uuid), eq(fonts.userId, req.userId!)))
       .get();
 
     if (!font) {
@@ -158,7 +181,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
     }
 
     // Delete from database
-    await db.delete(fonts).where(and(eq(fonts.id, id), eq(fonts.userId, req.userId!)));
+    await db.delete(fonts).where(and(eq(fonts.uuid, uuid), eq(fonts.userId, req.userId!)));
 
     res.json({ success: true });
   } catch (error) {
