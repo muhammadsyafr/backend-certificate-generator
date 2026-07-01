@@ -66,6 +66,15 @@ app.use(express.urlencoded({ extended: true }));
 // Cookie parsing
 app.use(cookieParser());
 
+// Serve uploaded files with CORS headers
+const dataDir = process.env.DATA_DIR || './data';
+app.use('/uploads', (req, res, next) => {
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Cross-Origin-Resource-Policy', 'cross-origin');
+  next();
+}, express.static(`${dataDir}/uploads`));
+
 // Health check (public)
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });

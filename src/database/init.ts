@@ -157,7 +157,7 @@ export async function initializeDatabase() {
   }
 
   // Create upload directories
-  const uploadDirs = ['assets', 'assets/logo', 'assets/background', 'assets/free-image', 'fonts'];
+  const uploadDirs = ['logo', 'background', 'free-image', 'fonts'];
   for (const dir of uploadDirs) {
     const dirPath = path.join(dataDir, 'uploads', dir);
     if (!fs.existsSync(dirPath)) {

@@ -100,7 +100,7 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
     await mkdir(dirPath, { recursive: true });
     
     const fullPath = path.join(dirPath, uniqueFilename);
-    const filepath = path.join('uploads', subdir, uniqueFilename);
+    const filepath = path.join(subdir, uniqueFilename);
 
     // Save file
     await writeFile(fullPath, req.file.buffer);
