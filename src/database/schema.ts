@@ -6,6 +6,8 @@ export const users = sqliteTable('users', {
   email: text('email').notNull().unique(),
   password: text('password').notNull(), // bcrypt hash
   name: text('name').notNull(),
+  isAdmin: integer('is_admin', { mode: 'boolean' }).notNull().default(false),
+  plan: text('plan').notNull().default('free'), // 'free' | 'pro'
   failedLoginAttempts: integer('failed_login_attempts').notNull().default(0),
   lockedUntil: integer('locked_until'), // unix timestamp, null = not locked
   createdAt: integer('created_at').notNull(),

@@ -7,6 +7,7 @@ import { writeFile, unlink, mkdir } from 'fs/promises';
 import path from 'path';
 import { getDataDir } from '../utils/paths';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { getPlanLimits, checkQuota } from '../config/plans';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -63,7 +64,7 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST - Upload new font(s)
+// POST - Upload new font(s) (with quota check)
 router.post('/', upload.array('files'), async (req: AuthRequest, res) => {
   try {
     if (!req.files || req.files.length === 0) {
@@ -73,6 +74,42 @@ router.post('/', upload.array('files'), async (req: AuthRequest, res) => {
     const fontFamily = req.body.fontFamily;
     if (!fontFamily) {
       return res.status(400).json({ error: 'Font family name is required' });
+    }
+
+    const userId = req.userId!;
+    const userPlan = req.userPlan || 'free';
+
+    // Get plan limits
+    const limits = getPlanLimits(userPlan as 'free' | 'pro');
+
+    // Check if custom fonts are allowed
+    if (!limits.customFonts) {
+      return res.status(403).json({ 
+        error: 'Custom fonts not available on Free plan',
+        upgrade: true 
+      });
+    }
+
+    // Count current fonts
+    const currentFonts = await db
+      .select({ count: fonts.id })
+      .from(fonts)
+      .where(eq(fonts.userId, userId))
+      .all();
+    const currentCount = currentFonts.length;
+
+    // Check quota for each file to be uploaded
+    const filesToUpload = (req.files as Express.Multer.File[]).length;
+    const totalAfterUpload = currentCount + filesToUpload;
+    
+    const quota = checkQuota(userPlan as 'free' | 'pro', 'fonts', currentCount);
+    if (quota.limit !== -1 && totalAfterUpload > quota.limit) {
+      return res.status(403).json({ 
+        error: `Font limit reached. Your plan allows ${quota.limit} fonts. You have ${currentCount} and are trying to upload ${filesToUpload} more.`,
+        current: currentCount,
+        limit: quota.limit,
+        upgrade: true 
+      });
     }
 
     const results = [];

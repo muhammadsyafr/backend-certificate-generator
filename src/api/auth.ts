@@ -145,7 +145,7 @@ router.post('/register', authLimiter, async (req, res) => {
     await logAudit({ userId: user.id, action: 'register', email: user.email, ip, userAgent });
 
     // Generate token
-    const token = generateToken(user.id, user.uuid, user.email, user.name);
+    const token = generateToken(user.id, user.uuid, user.email, user.name, user.plan || 'free');
     setAuthCookie(res, token);
 
     res.status(201).json({
@@ -154,6 +154,7 @@ router.post('/register', authLimiter, async (req, res) => {
         id: user.uuid,
         email: user.email,
         name: user.name,
+        plan: user.plan,
         createdAt: user.createdAt,
       },
     });
@@ -213,7 +214,7 @@ router.post('/login', authLimiter, async (req, res) => {
     await logAudit({ userId: user.id, action: 'login_success', email: user.email, ip, userAgent });
 
     // Generate token
-    const token = generateToken(user.id, user.uuid, user.email, user.name);
+    const token = generateToken(user.id, user.uuid, user.email, user.name, user.plan || 'free');
     setAuthCookie(res, token);
 
     res.json({
@@ -222,6 +223,7 @@ router.post('/login', authLimiter, async (req, res) => {
         id: user.uuid,
         email: user.email,
         name: user.name,
+        plan: user.plan,
         createdAt: user.createdAt,
       },
     });
@@ -264,6 +266,8 @@ router.get('/me', authenticateToken, async (req: any, res) => {
       id: user.uuid,
       email: user.email,
       name: user.name,
+      isAdmin: user.isAdmin,
+      plan: user.plan,
       createdAt: user.createdAt,
     });
   } catch (error) {

@@ -19,6 +19,8 @@ export async function initializeDatabase() {
       email TEXT NOT NULL UNIQUE,
       password TEXT NOT NULL,
       name TEXT NOT NULL,
+      is_admin INTEGER NOT NULL DEFAULT 0,
+      plan TEXT NOT NULL DEFAULT 'free',
       failed_login_attempts INTEGER NOT NULL DEFAULT 0,
       locked_until INTEGER,
       created_at INTEGER NOT NULL
@@ -95,6 +97,18 @@ export async function initializeDatabase() {
     }
     // Make uuid unique and not null after population
     sqlite.exec(`CREATE UNIQUE INDEX IF NOT EXISTS idx_users_uuid ON users(uuid)`);
+  }
+
+  // Add isAdmin column if missing
+  const hasIsAdmin = tableInfo.some((col: any) => col.name === 'is_admin');
+  if (!hasIsAdmin) {
+    sqlite.exec(`ALTER TABLE users ADD COLUMN is_admin INTEGER NOT NULL DEFAULT 0`);
+  }
+
+  // Add plan column if missing
+  const hasPlan = tableInfo.some((col: any) => col.name === 'plan');
+  if (!hasPlan) {
+    sqlite.exec(`ALTER TABLE users ADD COLUMN plan TEXT NOT NULL DEFAULT 'free'`);
   }
 
   const templateInfo = sqlite.pragma('table_info(templates)');

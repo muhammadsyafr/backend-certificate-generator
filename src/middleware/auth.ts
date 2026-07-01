@@ -12,11 +12,13 @@ if (process.env.NODE_ENV === 'production' && JWT_SECRET === DEFAULT_SECRET) {
 export interface AuthRequest extends Request {
   userId?: number;
   userUuid?: string;
+  userPlan?: string;
   user?: {
     id: number;
     uuid: string;
     email: string;
     name: string;
+    plan: string;
   };
 }
 
@@ -31,11 +33,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const decoded = jwt.verify(token, JWT_SECRET) as any;
     req.userId = decoded.userId;
     req.userUuid = decoded.userUuid;
+    req.userPlan = decoded.plan || 'free'; // Default to free if not present
     req.user = {
       id: decoded.userId,
       uuid: decoded.userUuid,
       email: decoded.email,
       name: decoded.name,
+      plan: decoded.plan || 'free',
     };
     next();
   } catch (error) {
@@ -49,9 +53,9 @@ function extractBearerToken(req: Request): string | undefined {
   return authHeader.slice(7);
 }
 
-export const generateToken = (userId: number, userUuid: string, email: string, name: string): string => {
+export const generateToken = (userId: number, userUuid: string, email: string, name: string, plan: string): string => {
   return jwt.sign(
-    { userId, userUuid, email, name },
+    { userId, userUuid, email, name, plan },
     JWT_SECRET,
     { expiresIn: '7d' }
   );

@@ -8,6 +8,7 @@ import path from 'path';
 import sharp from 'sharp';
 import { getDataDir } from '../utils/paths';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { getPlanLimits, checkQuota } from '../config/plans';
 
 const router = Router();
 const upload = multer({ storage: multer.memoryStorage() });
@@ -38,7 +39,7 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST - Upload new asset
+// POST - Upload new asset (with dynamic quota check)
 router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
   try {
     if (!req.file) {
@@ -47,6 +48,40 @@ router.post('/', upload.single('file'), async (req: AuthRequest, res) => {
 
     const type = req.body.type || 'logo';
     const filename = req.file.originalname;
+    const userId = req.userId!;
+    const userPlan = req.userPlan || 'free';
+
+    // Get plan limits
+    const limits = getPlanLimits(userPlan as 'free' | 'pro');
+
+    // Check if asset type is allowed
+    if (type === 'logo' && limits.logos === 0) {
+      return res.status(403).json({ 
+        error: 'Logo uploads not available on Free plan',
+        upgrade: true 
+      });
+    }
+
+    // Count current usage based on type
+    const resourceType = type === 'background' ? 'backgrounds' : 'logos';
+    const currentAssets = await db
+      .select({ count: assets.id })
+      .from(assets)
+      .where(and(eq(assets.userId, userId), eq(assets.type, type)))
+      .all();
+    const currentCount = currentAssets.length;
+
+    // Check quota
+    const quota = checkQuota(userPlan as 'free' | 'pro', resourceType, currentCount);
+    if (!quota.allowed) {
+      const limitValue = quota.limit === -1 ? 'unlimited' : quota.limit;
+      return res.status(403).json({ 
+        error: `${resourceType} limit reached. Your plan allows ${limitValue} ${resourceType}.`,
+        current: currentCount,
+        limit: quota.limit,
+        upgrade: true 
+      });
+    }
 
     // Validate file type
     const ext = filename.split('.').pop()?.toLowerCase();

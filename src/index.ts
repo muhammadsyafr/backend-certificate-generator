@@ -15,6 +15,7 @@ import authRouter from './api/auth';
 import templatesRouter from './api/templates';
 import assetsRouter from './api/assets';
 import fontsRouter from './api/fonts';
+import adminRouter from './api/admin';
 
 const app = express();
 app.set('trust proxy', 1); // Trust Cloudflare/nginx reverse proxy
@@ -77,6 +78,9 @@ app.use('/api/auth', authRouter);
 app.use('/api/templates', templatesRouter);
 app.use('/api/assets', assetsRouter);
 app.use('/api/fonts', fontsRouter);
+
+// Admin routes (protected + admin only)
+app.use('/api/admin', adminRouter);
 
 // Initialize database
 (async () => {

@@ -3,6 +3,7 @@ import { db } from '../database/client';
 import { templates } from '../database/schema';
 import { eq, and } from 'drizzle-orm';
 import { authenticateToken, AuthRequest } from '../middleware/auth';
+import { checkQuotaMiddleware } from '../middleware/quota';
 
 const router = Router();
 
@@ -32,8 +33,8 @@ router.get('/', async (req: AuthRequest, res) => {
   }
 });
 
-// POST - Create new template
-router.post('/', async (req: AuthRequest, res) => {
+// POST - Create new template (with quota check)
+router.post('/', checkQuotaMiddleware('templates'), async (req: AuthRequest, res) => {
   try {
     const { name, layout } = req.body;
 
